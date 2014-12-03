@@ -11,17 +11,17 @@ http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf
 
 VMware Scripts
 ----
-vmware/datastoreClusterVMProvisioning.pl - originally sourcec from VirtuallyGhetto with some modifications to make an extreamly poor guess at which ESX host to use for balancing purposes.
-vmware/vmModify.pl - modfies the VM's hardware settings, CPU, RAM, Disk Size
+- vmware/datastoreClusterVMProvisioning.pl - originally sourcec from VirtuallyGhetto with some modifications to make an extreamly poor guess at which ESX host to use for balancing purposes.
+- vmware/vmModify.pl - modfies the VM's hardware settings, CPU, RAM, Disk Size
 
 Post Installation Scripts
 ----
-post/reboot_host - self explanitory
-post/resize_partition - resized the root partition
-post/resize_filesystem - expands the filesytem to the new partition size
-post/resize_volumes - exapnds LVM
-post/set_hostname - self explanatory
-post/cleanup - cleanup steps (currently remove vagrant user)
+- post/reboot_host - self explanitory
+- post/resize_partition - resized the root partition
+- post/resize_filesystem - expands the filesytem to the new partition size
+- post/resize_volumes - exapnds LVM
+- post/set_hostname - self explanatory
+- post/cleanup - cleanup steps (currently remove vagrant user)
 
 Known Bugs
 ----
