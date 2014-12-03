@@ -1,0 +1,23 @@
+#!/bin/bash
+
+fqdn=$1
+
+file_exists?() {
+    filename=$1
+
+    if [ -e $filename ]; then
+        echo 0
+    else
+        echo 1
+    fi
+}
+
+if [ $(eval file_exists? "/etc/hostname") ]; then
+    sudo bash -c "echo $fqdn > /etc/hostname"
+elif [ $(eval file_exists? "/etc/sysconfig/network") ]; then
+    sudo bash -c "echo 'NETWORKING=yes' > /etc/sysconfig/network"
+    sudo bash -c "echo 'HOSTNAME=${fqdn}' >> /etc/sysconfig/network"
+else
+    echo "Unable to set proper hostname, exiting!"
+    exit 2
+fi

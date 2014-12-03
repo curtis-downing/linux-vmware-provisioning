@@ -1,0 +1,22 @@
+#!/bin/bash
+
+PATH=/sbin:/bin
+
+logical_volume=$(cat /etc/fstab | awk '$2 ~ /^\/$/ {print $1}')
+fstype=$(cat /etc/fstab | awk '$2 ~ /^\/$/ {print $3}')
+
+echo $fstype
+
+case $fstype in
+    xfs)
+        echo "Resizing XFS filesystem"
+        sudo xfs_growfs $logical_volume
+        ;;
+    ext3)
+        echo "Resizing EXT3 filesystem"
+        sudo resize2fs $logical_volume
+        ;;
+    *)
+        echo "Unknown filesystem type: don't worry this script sucks"
+        ;;
+esac

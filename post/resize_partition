@@ -1,0 +1,19 @@
+#!/bin/bash
+
+PATH=/sbin:/bin
+
+device="/dev/sda"
+echo "Resizing ${device}"
+
+echo "
+d
+2
+n
+
+p
+2
+t
+8e
+
+
+w" | sudo fdisk $device

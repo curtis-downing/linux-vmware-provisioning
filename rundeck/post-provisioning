@@ -1,0 +1,145 @@
+#!/bin/bash
+
+RUNDECK_JOB_ID=$1
+VMNAME=$2
+SCRIPTNAME=$3
+WORKING_DIRECTORY="/tmp/${RUNDECK_JOB_ID}"
+DOMAIN_NAME="YOURDOMAIN"
+REPO_SERVER="${RD_REPO_SERVER}"
+
+if [ -z $1 ]; then
+    echo "Job ID not set, exiting!"
+    exit 2
+fi
+
+if [ -z $2 ]; then
+    echo "Hostname not set, exiting!"
+    exit 2
+fi
+
+if [ -z $3 ]; then
+    echo "Scriptname not set, exiting!"
+    exit 2
+fi
+
+cleanup_workspace() {
+    if [ -d "${WORKING_DIRECTORY}" ]; then
+        rm -rf "${WORKING_DIRECTORY}"
+    fi
+}
+
+get_vm_ip() {
+    local vm_name=$1
+    local ip_file="${WORKING_DIRECTORY}/vm_ipaddr"
+    local count=0
+    local retry_count=12
+    local vm_ip=""
+   
+    if [ ! -f "${ip_file}" ]; then
+        # only query vsphere once - dump ip to a file for other use
+        while [ -z "${vm_ip}" ]; do
+            count=$(($count+1))
+            vm_ip=$(/usr/lib/vmware-vcli/apps/vm/vminfo.pl --vmname $vm_name --fields ipAddress | awk '/IP Address/ && $3 ~ /[[:digit:]]+/ {print $3}')
+            if [ "${count}" -ge "${retry_count}" ]; then break; fi
+            sleep 5;
+        done
+
+        if [ -z "${vm_ip}" ]; then
+            echo "Timeout getting VM IP, exiting!" 
+            exit 2
+        fi
+   
+        echo "${vm_ip}" > "${ip_file}"
+   else
+        vm_ip=$(cat "${ip_file}")
+   fi 
+
+   echo "${vm_ip}"
+}
+
+connect_to_host() {
+    local ip_address=$1
+    local scriptname=$2
+    local count=0
+    local retry_count=15
+    local ping_retval=1
+
+    if [ ! -f vagrant.key ]; then
+        wget -q https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant -O vagrant.key
+        chmod 600 vagrant.key
+    fi
+    
+    # make sure the host is responding ... one of the steps is a reboot and there is lag for dhcp
+    while [ $ping_retval -ne 0 ]; do
+        echo "Trying to ping ${ip_address}"
+        ping -c 1 $ip_address -q &> /dev/null
+        print_retval=$?
+        count=$(($count+1))
+        sleep 5
+     
+        if [ "${count}" -ge "${retry_count}" ]; then
+            echo "Timeout trying to ping server, exiting!"
+            exit 2
+        else
+            echo "Successful ping"
+            break
+        fi
+    done
+
+    local ssh_retry_count=3
+    local ssh_try_count=0
+    while [ $ssh_try_count -le $ssh_retry_count ]; do
+        ssh -l vagrant -i vagrant.key -o StrictHostKeyChecking=no $ip_address 'bash -s' < $scriptname "${VMNAME}.${DOMAIN_NAME}" 
+        ssh_try_count=$(($ssh_try_count+1))
+     
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep 5
+    done 
+}
+
+mkdir -p $WORKING_DIRECTORY
+cd $WORKING_DIRECTORY
+
+IPADDR=$(get_vm_ip "${VMNAME}")
+echo "WORKFLOW STEP (${SCRIPTNAME}) - running"
+
+case $SCRIPTNAME in
+    prepare)
+        echo "Downloading provisioning scripts and getting VM IP"
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/reboot_host
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/resize_partition
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/resize_filesystem
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/resize_volumes
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/set_hostname
+        wget -q https://$REPO_SERVER/tools/provisioning/raw/master/cleanup
+        ;;
+    reboot_host)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        echo "Host rebooted"
+        ;;
+    resize_partition)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        echo "Partition resized"
+        ;;
+    resize_filesystem)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        ;;
+    resize_volumes)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        ;;
+    set_hostname)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        ;;
+    cleanup)
+        connect_to_host "${IPADDR}" "${SCRIPTNAME}"
+        cleanup_workspace
+        ;;
+    *)
+        echo "Unknown remote script"
+        exit 2
+        ;;
+esac
+
+exit $?

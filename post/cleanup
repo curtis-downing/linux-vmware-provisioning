@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Removing vagrant user and home directory"
+sudo bash -c "userdel -r -f vagrant" &> /dev/null

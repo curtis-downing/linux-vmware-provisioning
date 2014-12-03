@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PATH=/sbin:/bin
+device="/dev/sda2"
+logical_volume=$(cat /etc/fstab | awk '$2 ~ /^\/$/ {print $1}')
+
+sudo pvresize $device
+
+sudo lvextend -l +100%FREE $logical_volume

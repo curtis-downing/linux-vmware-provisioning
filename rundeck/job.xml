@@ -1,0 +1,152 @@
+- id: bdae2bc3-87e5-4027-9c9b-c3fe5e91422e
+  project: Infrastructure
+  loglevel: INFO
+  multipleExecutions: true
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+    - exec: /usr/bin/sudo -u root /root/vghetto-scripts/perl/datastoreClusterVMProvisioning.pl --vmname  ${option.01_Hostname} --vmfolder Templates --stack ${option.05_Operating_System} --environment ${option.07_Vsphere_Environment} --division applications
+      description: Clone from Image
+    - exec: /usr/bin/sudo -u root /root/vghetto-scripts/perl/vmModify.pl --vmname ${option.01_Hostname} --cpus ${option.02_CPUs} --memory ${option.03_Memory} --disk ${option.04_Diskspace}
+      description: Apply Hardware Settings
+    - exec: /usr/bin/sudo -u root /usr/lib/vmware-vcli/apps/vm/vmcontrol.pl --vmname ${option.01_Hostname} --operation poweron
+      description: Power on VM
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} prepare
+      description: Get IP and Download Scripts
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} set_hostname
+      description: Set Hostname
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} resize_partition
+      description: Resize Partition
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} reboot_host
+      description: Reboot Host
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} resize_volumes
+      description: Resize Volumes
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} resize_filesystem
+      description: Resize Filesystem
+    - exec: /usr/bin/sudo -u root /opt/ops/bin/rundeck-remote-provisioning-script ${job.execid} ${option.01_Hostname} cleanup
+      description: Cleanup
+  description: not production ready - build in progress
+  name: Infrastructure Stack
+  uuid: bdae2bc3-87e5-4027-9c9b-c3fe5e91422e
+  nodefilters:
+    dispatch:
+      threadcount: 1
+      keepgoing: false
+      excludePrecedence: true
+      rankOrder: ascending
+    filter: 'name: SERVERNAME'
+  group: Adhoc/Provisioning/Building
+  options:
+    01_Hostname:
+      required: true
+      description: 'Hostname to assign to the machine (fqdn or short hostname: assumes
+        domain YOURDOMAIN)'
+    02_CPUs:
+      enforced: true
+      required: true
+      description: Number of CPU(s) to give to the machine
+      value: '01'
+      values:
+      - '01'
+      - '02'
+      - '04'
+      - '06'
+      - '08'
+      - '16'
+    03_Memory:
+      enforced: true
+      required: true
+      description: Memory in Gigabytes
+      value: '01'
+      values:
+      - '01'
+      - '02'
+      - '04'
+      - '06'
+      - '08'
+      - '12'
+      - '16'
+      - '32'
+    04_Diskspace:
+      enforced: true
+      required: true
+      description: Diskspace in Gigabytes
+      value: '010'
+      values:
+      - '010'
+      - '015'
+      - '020'
+      - '030'
+      - '040'
+      - '050'
+      - '060'
+      - '080'
+      - '100'
+      - '150'
+      - '200'
+    05_Operating_System:
+      enforced: true
+      required: true
+      description: OS Type (automatice will try to determine OS type based on our naming convention)
+      value: automatic
+      values:
+      - automatic
+      - centos-6
+      - centos70
+      - debian-6
+      - debian-7
+      - ubuntu-12
+      - ubuntu-14
+    06_Stack-Type:
+      enforced: true
+      required: true
+      value: base
+      values:
+      - base
+      - mysql
+      - postgresql
+      - smtp-relay
+    07_Vsphere_Environment:
+      enforced: true
+      required: true
+      description: Server Environment the server should live in
+      value: production
+      values:
+      - development
+      - production
+      - staging
+    08_Chef_Management:
+      enforced: true
+      required: true
+      description: Bring System into Chef for configuration management
+      value: 'true'
+      values:
+      - 'false'
+      - 'true'
+    09_Chef_Environment:
+      enforced: true
+      required: true
+      description: Which Chef environment to use for configuration management
+      value: production
+      values:
+      - clg
+      - concept
+      - development
+      - production
+      - staging
+      - telephony
+      - test
+      - uat
+      - workstations
+    10_Location:
+      enforced: true
+      required: true
+      description: Where to provision the machine
+      value: El Segundo
+      values:
+      - Carolton
+      - El Segundo
+    repo_server:
+      description: repository server
+      value: YOUR REPO SERVER HERE
